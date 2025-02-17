@@ -15,9 +15,6 @@ end
 
 --initial menu manager
 function menu_init()
-	--create player
-	--make_player()
-	
 	--change to main menu
 	_update=menu_update
 	_draw=menu_draw
@@ -26,7 +23,7 @@ end
 --game screen initializer
 function game_init()
 	game_over=false
-	--make_player()
+	make_player()
 	_update=game_update
 	_draw=game_draw
 end
@@ -37,8 +34,34 @@ function game_over_init()
 	_draw=game_over_draw
 end
 
---declarations
+--global declarations
 game_time=0
+
+--global player declarations
+
+--position
+playerx=0
+playery=0
+
+--sprites
+steer_left_sp=2
+steer_right_sp=3
+player_idle_sp=1
+
+--player maneuvering
+steering_left = false
+steering_right = false
+is_idle=false
+player_speed=0
+player_speed_max=1.47
+
+-- tachometer
+rpm = 0.15 -- current rev level (0 to 1)
+rev_speed = 0.0095 -- how fast the revs increase/decrease
+decay_rate = 0.05 -- how quickly rpm drops when no input
+decay_factor = 0.98  -- rate at which the decay slows down over time
+
+
 -->8
 --main menu functions
 --main menu updater
@@ -70,7 +93,7 @@ function game_update()
 	
 	--check if game is over
 	if not game_over then
-		--move_player()
+		move_player()
 	else
 		game_over_init()
 	end
@@ -81,17 +104,21 @@ function game_update()
 	elseif btnp(4) then
 		menu_init()
 	end
+	
+
 end
 
 function game_draw()
 	cls()
-	--draw_player()
+	draw_player()
 	
 	print("gameplay screen",0,0,14) 
 	print("game over 🅾️",
 	 42, 80, 12) 
 	print("main menu ❎",
 	 42, 90, 12) 
+	print("player_speed: "..player_speed,0,8,14)
+	print("rpm: "..rpm,0,16,14)
 end
 
 --game over functions
@@ -111,10 +138,91 @@ function game_over_draw()
 	print("press 🅾️ to play again!",18,72,6)
 	print("press ❎ for main menu",18,84,6)
 end
+-->8
+--player functions
+--create the player
+function make_player()
+	--set initial player location
+	playerx=24
+	playery=60
+	player_speed=0
+	
+end
+
+--draw the player
+function draw_player()
+		if steering_left then
+		spr(steer_left_sp,playerx,playery)
+	elseif steering_right then
+		spr(steer_right_sp, playerx, playery)
+	else
+		spr(player_idle_sp, playerx, playery)	
+	end
+end
+
+--move the player
+function move_player()
+		--check for out of bounds
+	if playerx<0 then
+		playerx=0
+	elseif playerx>120 then
+		playerx=120
+	end
+	
+	--basic movement left/right
+	if btn(0) then 
+		playerx-=player_speed
+		steering_right=false
+		steering_left=true 
+	elseif btn(1) then 
+		playerx+=player_speed
+		steering_left=false
+		steering_right=true
+	else
+		steering_left=false
+		steering_right=false
+	end
+	
+	--basic movement up/down
+	if btn(2) then
+		playery-=player_speed
+	elseif btn(3) then
+		playery+=player_speed
+	end
+	
+	--simulate revving
+	if btn(0) then
+		if rpm>0.75 then
+			--do nothing, don't increase accel.
+		else
+			--decrease accel
+			rpm=min(1,rpm+rev_speed)
+			decay_rate=0.01
+			player_speed=player_speed_max*rpm+1
+		end
+	elseif btn(1) then
+		if rpm>0.75 then
+			--do nothing
+		else
+			rpm=min(1,rpm+rev_speed)
+			decay_rate=0.01
+			player_speed=player_speed_max*rpm+1
+		end
+	else
+		if rpm>0.15 then
+			rpm=max(0,rpm-decay_rate)
+			decay_rate=decay_rate*decay_factor
+			player_speed=player_speed_max*rpm+1
+		end
+end
+
+end
 __gfx__
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000a00d0000a0200000090d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000a00d0000a0200000090d00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+007007000aa00dd009a02d0000990d20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000770000a0000d00a000d0000a000d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000a90cc02d0a06cdd00aac60d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700a9a66d2d0a9c2dd00aa9c2d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000a9ad2d0009ddd0000aaa200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000006006000060600000060600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
