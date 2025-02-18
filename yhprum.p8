@@ -340,10 +340,14 @@ function changeweapon()
 	end
 end
 
+--collision detection
+--checks (2) rectangles
+--for overlap
 function overlap(ax,ay,ah,aw,bx,by,bh,bw)
 	return not(ax>bx+bw or ay>by+bh or ax+aw<bx or ay+ah<by)
 end
 
+--global collision manager
 function collision()
 	for p in all(projectiles) do
 		if overlap(p.x,p.y,p.h,p.w,enemy_1x+1,enemy_1y,8,6) then
