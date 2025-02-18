@@ -114,6 +114,7 @@ function game_update()
 	--check if game is over
 	if not game_over then
 		move_player()
+		--collision()
 	else
 		game_over_init()
 	end
@@ -132,12 +133,13 @@ function game_draw()
 	cls()
 	draw_player()
 	draw_enemy()
+	collision()
 	
 	print("gameplay screen",0,0,14) 
-	print("game over 🅾️",
-	 42, 80, 12) 
-	print("main menu ❎",
-	 42, 90, 12) 
+	--print("game over 🅾️",
+	-- 42, 80, 12) 
+	--print("main menu ❎",
+	-- 42, 90, 12)  
 	--print("player_speed: "..player_speed,0,8,14)
 	--print("rpm: "..rpm,0,16,14)
 end
@@ -291,7 +293,9 @@ function fire(weapon)
 			name='yellow_bullet',
 			sp=4,
 			x=playerx+2,
-			y=playery
+			y=playery,
+			h=4,
+			w=4
 		}
 		add(projectiles,p)
 		cooldown_yellow=game_time+cooldown_yellow_cooldown
@@ -302,7 +306,9 @@ function fire(weapon)
 			name='green_bullet',
 			sp=5,
 			x=playerx+2,
-			y=playery
+			y=playery,
+			h=4,
+			w=4
 		}		
 		add(projectiles,p)
 		cooldown_green=game_time+cooldown_green_cooldown
@@ -336,6 +342,14 @@ end
 
 function overlap(ax,ay,ah,aw,bx,by,bh,bw)
 	return not(ax>bx+bw or ay>by+bh or ax+aw<bx or ay+ah<by)
+end
+
+function collision()
+	for p in all(projectiles) do
+		if overlap(p.x,p.y,p.h,p.w,enemy_1x+1,enemy_1y,8,6) then
+				print("!hitting!",enemy_1x-10,enemy_1y,10)
+		end
+	end
 end
 -->8
 --enemy functions
