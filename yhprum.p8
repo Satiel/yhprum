@@ -351,7 +351,8 @@ end
 function collision()
 	for p in all(projectiles) do
 		if overlap(p.x,p.y,p.h,p.w,enemy_1x+1,enemy_1y,8,6) then
-				print("!hitting!",enemy_1x-10,enemy_1y,10)
+				print("! hit !",enemy_1x-10,enemy_1y,10)
+				del(projectiles,p)
 		end
 	end
 end
