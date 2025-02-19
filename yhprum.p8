@@ -188,7 +188,10 @@ function draw_player()
 	-- draw collision boxes --
 	rect(playerx+1,playery,playerx+6,playery+8,8)
 	rect(enemy_1x+1,enemy_1y,enemy_1x+6,enemy_1x+8,11)
-
+	for e in all(enemies) do
+		rect(e.x+1,e.y,e.x+6,e.y+8)
+	end
+	
 		if steering_left then
 		spr(steer_left_sp,playerx,playery)
 	elseif steering_right then
@@ -206,6 +209,7 @@ function draw_player()
 	print('current weapon: '..player_weapon,0,8,15)
 	print('p size: '..count(projectiles),0,16,15)
 	print('e size: '..count(enemies),0,24,15)
+	print('gametime: '..game_time,0,120,15)
 	if overlap(playerx+1,playery,8,6,enemy_1x+1,enemy_1y,8,6) then
 		print("overlapping enemy!",30,30,13)
 	end
@@ -301,7 +305,8 @@ function fire(weapon)
 			x=playerx+2,
 			y=playery,
 			h=4,
-			w=4
+			w=4,
+			damage=4
 		}
 		add(projectiles,p)
 		cooldown_yellow=game_time+cooldown_yellow_cooldown
@@ -314,7 +319,8 @@ function fire(weapon)
 			x=playerx+2,
 			y=playery,
 			h=4,
-			w=4
+			w=4,
+			damage=10
 		}		
 		add(projectiles,p)
 		cooldown_green=game_time+cooldown_green_cooldown
@@ -355,10 +361,16 @@ end
 
 --global collision manager
 function collision()
-	for p in all(projectiles) do
-		if overlap(p.x,p.y,p.h,p.w,enemy_1x+1,enemy_1y,8,6) then
-				print("! hit !",enemy_1x-10,enemy_1y,10)
-				del(projectiles,p)
+	--loop through enemies
+	--then projectiles
+	--check for collisions
+	--deal damage and delete p
+	for e in all(enemies) do
+		for p in all(projectiles) do
+			if overlap(p.x,p.y,p.h,p.w,e.x+1,e.y,8,6) then
+				print("! hit !",e.x-10,e.y,10)
+				e.hp-=p.damage
+			end
 		end
 	end
 end
@@ -398,14 +410,18 @@ function add_enemy(enemy_name)
 			target_y=70,
 			name="redsquid"
 		}
+		
+		add(enemies,_e)
 	end
 	
-	add(enemies,_e)
+	
 end
 
 function move_enemies()
 	for e in all(enemies) do
-		if e.name=="redsquid" then
+		if e.hp<1 then
+			del(enemies,e)
+		elseif e.name=="redsquid" then
 			--check if we've reached
 			--our target
 			if e.y<e.target_y then
