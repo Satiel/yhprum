@@ -83,6 +83,7 @@ player_currentweap=1
 enemy_1x=0
 enemy_1y=0
 enemies={}
+enemy_projectiles={}
 
 --gamestate
 level_state=0
@@ -186,8 +187,7 @@ end
 --draw the player
 function draw_player()
 	-- draw collision boxes --
-	rect(playerx+1,playery,playerx+6,playery+8,8)
-	rect(enemy_1x+1,enemy_1y,enemy_1x+6,enemy_1x+8,11)
+
 	for e in all(enemies) do
 		rect(e.x+1,e.y,e.x+6,e.y+8)
 	end
@@ -205,14 +205,22 @@ function draw_player()
 		spr(p.sp, p.x, p.y)
 	end
 	
+	--draw enemy projectiles
+	for ep in all(enemy_projectiles) do
+		spr(ep.sp,ep.x,ep.y)
+	end
+	
 	--debug
 	print('current weapon: '..player_weapon,0,8,15)
-	print('p size: '..count(projectiles),0,16,15)
+	print('enemy p size: '..count(enemy_projectiles),0,16,15)
 	print('e size: '..count(enemies),0,24,15)
 	print('gametime: '..game_time,0,120,15)
 	if overlap(playerx+1,playery,8,6,enemy_1x+1,enemy_1y,8,6) then
 		print("overlapping enemy!",30,30,13)
 	end
+	
+	rect(playerx+3,playery+4,playerx+4,playery+5,8)
+	rect(enemy_1x+1,enemy_1y,enemy_1x+6,enemy_1x+8,11)
 	
 end
 
@@ -279,6 +287,8 @@ function move_player()
 	end
 		
 	--update projectiles
+	
+	--player projectiles
 	for p in all (projectiles) do
 		if p.name=='yellow_bullet' then
 			p.y-=5
@@ -289,6 +299,18 @@ function move_player()
 		--check if out of bounds
 		if p.y>136 or p.y<-8 or p.x>136 or p.x<-8 then
 			del(projectiles,p)	
+		end
+	end
+	
+	--enemy projectiles
+	for ep in all(enemy_projectiles) do
+		if ep.name=='redsquid' then
+			ep.y+=.7
+		end
+		
+		--check if out of bounds
+		if ep.y>136 then
+			del(enemy_projectiles,ep)
 		end
 	end
 
@@ -411,7 +433,9 @@ function add_enemy(enemy_name)
 			hp=50,
 			movespeed=0.5,
 			target_y=70,
-			name="redsquid"
+			name="redsquid",
+			fire_cooldown=randint(24),
+			fire_start=0
 		}
 		
 		add(enemies,_e)
@@ -422,23 +446,59 @@ end
 
 function move_enemies()
 	for e in all(enemies) do
+		--check health
 		if e.hp<1 then
 			del(enemies,e)
+			
+		--redsquid updates
 		elseif e.name=="redsquid" then
+
 			--check if we've reached
 			--our target
 			if e.y<e.target_y then
 				e.y+=e.movespeed
 			end
+
+			--enemy firing countdown
+			if e.fire_cooldown>0 then
+				e.fire_start+=1
+
+				--check if cooldown hit
+				if e.fire_start>e.fire_cooldown then
+
+					--fire sequence
+					enemy_fire(e.x+4,e.y+4,e.name)
+
+					--reset cooldown
+					e.fire_start=0
+					e.fire_cooldown=randint(90)+30					
+				end
+			end
+			
+			
 		end
 	end
 end
 
+function enemy_fire(x,y,name)
+	ep={
+		x=x,
+		y=y,
+		name=name
+	}
+	
+	if name=="redsquid" then
+		ep.sp=10
+		ep.dy=1
+		add(enemy_projectiles,ep)
+	end	
+end
+
 __gfx__
-0000000000a00d0000a0200000090d000aa000000bb0000008800000008008000800808000900900000000000000000000000000000000000000000000000000
-0000000000a00d0000a0200000090d00a00a0000b00b000080080000008008000800808000900900000000000000000000000000000000000000000000000000
-007007000aa00dd009a02d0000990d20a00a0000b00b000080080000088008800808808000900900000000000000000000000000000000000000000000000000
-000770000a0000d00a000d0000a000d00aa000000bb00000088000000800008008888880099dd990000000000000000000000000000000000000000000000000
+0000000000a00d0000a0200000090d000aa000000bb0000008800000008008000800808000900900a00a00000000000000000000000000000000000000000000
+0000000000a00d0000a0200000090d00a00a0000b00b0000800800000080080008008080009009000a9000000000000000000000000000000000000000000000
+007007000aa00dd009a02d0000990d20a00a0000b00b00008008000008800880080880800090090009a000000000000000000000000000000000000000000000
+000770000a0000d00a000d0000a000d00aa000000bb00000088000000800008008888880099dd990a00a00000000000000000000000000000000000000000000
 00077000a90cc02d0a06cdd00aac60d0000000000000000000000000820cc028088cc8809d9999d9000000000000000000000000000000000000000000000000
 00700700a9a66d2d0a9c2dd00aa9c2d00000000000000000000000008286682808cccc809cccccc9000000000000000000000000000000000000000000000000
 000000000a9ad2d0009ddd0000aaa20000000000000000000000000008288280008cc80090cccc09000000000000000000000000000000000000000000000000
