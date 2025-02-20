@@ -40,6 +40,9 @@ game_time=0
 
 --global player declarations
 
+--player stats
+player_hp=100
+
 --position
 playerx=0
 playery=0
@@ -186,11 +189,11 @@ end
 
 --draw the player
 function draw_player()
-	-- draw collision boxes --
+	--[[ draw collision boxes 
 
 	for e in all(enemies) do
 		rect(e.x+1,e.y,e.x+6,e.y+8)
-	end
+	end--]]
 	
 		if steering_left then
 		spr(steer_left_sp,playerx,playery)
@@ -211,16 +214,17 @@ function draw_player()
 	end
 	
 	--debug
-	print('current weapon: '..player_weapon,0,8,15)
-	print('enemy p size: '..count(enemy_projectiles),0,16,15)
-	print('e size: '..count(enemies),0,24,15)
+	--print('current weapon: '..player_weapon,0,8,15)
+	--print('enemy p size: '..count(enemy_projectiles),0,16,15)
+	--print('e size: '..count(enemies),0,24,15)
 	print('gametime: '..game_time,0,120,15)
-	if overlap(playerx+1,playery,8,6,enemy_1x+1,enemy_1y,8,6) then
-		print("overlapping enemy!",30,30,13)
-	end
+	print('health: '..player_hp,60,120,8)
+	--[[if overlap(playerx+1,playery,8,6,enemy_1x+1,enemy_1y,8,6) then
+	 print("overlapping enemy!",30,30,13)
+	end--]]
 	
 	rect(playerx+3,playery+4,playerx+4,playery+5,8)
-	rect(enemy_1x+1,enemy_1y,enemy_1x+6,enemy_1x+8,11)
+	--rect(enemy_1x+1,enemy_1y,enemy_1x+6,enemy_1x+8,11)
 	
 end
 
@@ -306,6 +310,11 @@ function move_player()
 	for ep in all(enemy_projectiles) do
 		if ep.name=='redsquid' then
 			ep.y+=.7
+			if overlap(playerx+3,playery+4,2,2,ep.x,ep.y,4,4) then
+				del(enemy_projectiles,ep)
+				player_hp-=10
+				print("!! taking damage !!",72,18,8)
+			end
 		end
 		
 		--check if out of bounds
@@ -383,6 +392,25 @@ function overlap(ax,ay,ah,aw,bx,by,bh,bw)
 	return not(ax>bx+bw or ay>by+bh or ax+aw<bx or ay+ah<by)
 end
 
+--check for grazing
+function graze_overlap(ax,ay,ah,aw,bx,by,bh,bw)
+	-- check full overlap
+	local full_overlap = not(ax>bx+bw or ay>by+bh or ax+aw<bx or ay+ah<by)
+
+	-- define center hitbox of the 8x8 player sprite
+	local center_x = ax + 3  -- start of center area
+	local center_y = ay + 4  -- start of center area
+	local center_w = 2
+	local center_h = 2
+
+	-- check if the projectile also overlaps with the center
+	local center_overlap = not(center_x > bx + bw or center_y > by + bh or 
+		center_x + center_w < bx or center_y + center_h < by)
+
+	-- grazing happens when the projectile overlaps the ship but not the center
+	return full_overlap and not center_overlap
+end
+
 --global collision manager
 function collision()
 	--loop through enemies
@@ -396,6 +424,12 @@ function collision()
 				e.hp-=p.damage
 				del(projectiles,p)
 			end
+		end
+	end
+	
+	for ep in all(enemy_projectiles) do
+		if graze_overlap(playerx,playery,8,8,ep.x,ep.y,4,4) then
+			print("!! graze !!",72,10,8)
 		end
 	end
 end
