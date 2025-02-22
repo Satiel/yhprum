@@ -22,6 +22,7 @@ end
 
 --game screen initializer
 function game_init()
+	
 	game_over=false
 	make_player()
 	make_enemy()
@@ -121,6 +122,11 @@ function game_update()
 	--purge at 17 minutes
 	game_time=(game_time+1)%32000
 	
+	--check if player is alive
+	if player_hp<1 then
+		game_over=true
+	end
+	
 	--check if game is over
 	if not game_over then
 		move_player()
@@ -160,9 +166,11 @@ end
 function game_over_update()
 	--press 🅾️ for new game
 	if btnp(5) then
+		clear_history()
 		game_init()
 	--press ❎ for main menu
 	elseif btnp(4) then
+		clear_history()
 		menu_init()
 	end
 end
@@ -172,6 +180,26 @@ function game_over_draw()
 	print("game over screen",0,0,14)
 	print("press 🅾️ to play again!",18,72,6)
 	print("press ❎ for main menu",18,84,6)
+	spr(1,20,90)
+end
+
+function clear_history()
+	
+	--reset variables after death
+	projectiles={}
+	enemies={}
+	enemy_projectiles={}
+	side_enemies={}
+	cls()
+	player_hp=100
+	player_score=0
+	game_time=0
+	cooldown_weaponswitch=0
+	cooldown_yellow=0
+	cooldown_green=0
+	cooldown_red=0
+
+	
 end
 -->8
 --player functions
@@ -244,8 +272,15 @@ function move_player()
 		--check for out of bounds
 	if playerx<0 then
 		playerx=0
-	elseif playerx>120 then
+	end
+	if playerx>120 then
 		playerx=120
+	end
+	if playery<8 then
+		playery=8
+	end
+	if playery>120 then
+		playery=120
 	end
 	
 	--basic movement left/right
@@ -320,21 +355,21 @@ function move_player()
 	--enemy projectiles
 	for ep in all(enemy_projectiles) do
 		if ep.name=='redsquid' then
-			ep.y+=.7
+			ep.y+=1.7
 			if overlap(playerx+3,playery+4,2,2,ep.x+2,ep.y+1,2,2) then
 				del(enemy_projectiles,ep)
-				player_hp-=3
+				player_hp-=20
 				print("!! taking damage !!",72,18,8)
 			end
 		elseif ep.name=="greensquid" or ep.name=="greensquid_r" then
 			if overlap(playerx+3,playery+4,2,2,ep.x,ep.y,4,4) then
 				del(enemy_projectiles,ep)
-				player_hp-=1
+				player_hp-=10
 			end
 			if ep.name=="greensquid" then
-				ep.x+=3
+				ep.x+=4.5
 			elseif ep.name=="greensquid_r" then
-				ep.x-=3
+				ep.x-=6
 			end
 		end
 		
@@ -509,7 +544,7 @@ function enemy_manager()
 		if game_time%61==0 then
 			add_enemy("redsquid")
 		end
-		if game_time%301==0 then
+		if game_time%121==0 then
 			add_enemy("greensquid")
 			add_enemy("greensquid_r")
 		else
@@ -536,7 +571,7 @@ function add_enemy(enemy_name)
 			movespeed=0.5,
 			target_y=140,
 			name="redsquid",
-			fire_cooldown=randint(24),
+			fire_cooldown=randint(10),
 			fire_start=0
 		}
 		
@@ -547,8 +582,8 @@ function add_enemy(enemy_name)
 			x=0,
 			y=-8,
 			hp=1000,
-			movespeed=1,
-			target_y=playery,
+			movespeed=3,
+			target_y=randint(playery)+8,
 			name="greensquid",
 			fire_cooldown=randint(30)+30,
 			fire_start=0
@@ -561,8 +596,8 @@ function add_enemy(enemy_name)
 			x=120,
 			y=-8,
 			hp=1000,
-			movespeed=1,
-			target_y=playery,
+			movespeed=3,
+			target_y=randint(playery)+8,
 			name="greensquid_r",
 			fire_cooldown=randint(30)+30,
 			fire_start=0
