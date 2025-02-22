@@ -313,13 +313,19 @@ function move_player()
 			ep.y+=.7
 			if overlap(playerx+3,playery+4,2,2,ep.x+2,ep.y+1,2,2) then
 				del(enemy_projectiles,ep)
-				player_hp-=10
+				player_hp-=3
 				print("!! taking damage !!",72,18,8)
 			end
-		elseif ep.name=="greensquid" then
-			ep.x+=3
-		elseif ep.name=="greensquid_r" then
-			ep.x-=3
+		elseif ep.name=="greensquid" or ep.name=="greensquid_r" then
+			if overlap(playerx+3,playery+4,2,2,ep.x,ep.y,4,4) then
+				del(enemy_projectiles,ep)
+				player_hp-=1
+			end
+			if ep.name=="greensquid" then
+				ep.x+=3
+			elseif ep.name=="greensquid_r" then
+				ep.x-=3
+			end
 		end
 		
 		--check if out of bounds
@@ -423,6 +429,16 @@ function collision()
 	--check for collisions
 	--deal damage and delete p
 	for e in all(enemies) do
+		--check if our ship has 
+		--collided with an enemy
+		--and explode!!!
+		if overlap(playerx+3,playery+4,2,2,e.x+2,e.y+4,4,4) then
+			player_hp-=10
+			del(enemies,e)
+		end
+		if graze_overlap(playerx,playery,8,8,e.x+1,e.y,8,6) then
+			print("!! enemy_graze !!",72,18,11)
+		end
 		for p in all(projectiles) do
 			if overlap(p.x,p.y,p.h,p.w,e.x+1,e.y,8,6) then
 				print("! hit !",e.x-10,e.y,10)
@@ -432,6 +448,7 @@ function collision()
 		end
 	end
 	
+	--check for projectile grazing
 	for ep in all(enemy_projectiles) do
 		if graze_overlap(playerx,playery,8,8,ep.x,ep.y,4,4) then
 			print("!! graze !!",72,10,8)
@@ -501,7 +518,7 @@ function add_enemy(enemy_name)
 			movespeed=1,
 			target_y=playery,
 			name="greensquid",
-			fire_cooldown=30,
+			fire_cooldown=randint(30)+30,
 			fire_start=0
 		}
 		
@@ -515,7 +532,7 @@ function add_enemy(enemy_name)
 			movespeed=1,
 			target_y=playery,
 			name="greensquid_r",
-			fire_cooldown=30,
+			fire_cooldown=randint(30)+30,
 			fire_start=0
 		}
 		
