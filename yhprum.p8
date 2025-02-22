@@ -318,10 +318,12 @@ function move_player()
 			end
 		elseif ep.name=="greensquid" then
 			ep.x+=3
+		elseif ep.name=="greensquid_r" then
+			ep.x-=3
 		end
 		
 		--check if out of bounds
-		if ep.y>136 or ep.x>136 then
+		if ep.y>136 or ep.x>136 or ep.x<-8 then
 			del(enemy_projectiles,ep)
 		end
 	end
@@ -449,7 +451,11 @@ function draw_enemy()
 	end
 	--loop and draw side enemies
 	for s_e in all(side_enemies) do
-		spr(s_e.sp,s_e.x,s_e.y)
+		if s_e.name=="greensquid" then
+			spr(s_e.sp,s_e.x,s_e.y)
+		elseif s_e.name=="greensquid_r" then
+			spr(s_e.sp,s_e.x,s_e.y,1.0,1.0,true)
+		end
 	end
 end
 
@@ -461,6 +467,9 @@ function enemy_manager()
 		end
 		if game_time%301==0 then
 			add_enemy("greensquid")
+			add_enemy("greensquid_r")
+		else
+			
 		end
 	end
 	
@@ -497,6 +506,20 @@ function add_enemy(enemy_name)
 		}
 		
 		add(side_enemies,_e)
+	elseif enemy_name=="greensquid_r" then
+		local _e={
+			sp=11,
+			x=120,
+			y=-8,
+			hp=1000,
+			movespeed=1,
+			target_y=playery,
+			name="greensquid_r",
+			fire_cooldown=30,
+			fire_start=0
+		}
+		
+		add(side_enemies,_e)		
 	end
 	
 	
@@ -539,7 +562,7 @@ function move_enemies()
 	
 	for s_e in all(side_enemies) do
 		--greensquid enemies
-		if s_e.name=="greensquid" then
+		if s_e.name=="greensquid" or s_e.name=="greensquid_r" then
 			--check if we've reached
 			--our target
 			if s_e.y<s_e.target_y then
@@ -556,8 +579,12 @@ function move_enemies()
 			
 				--check if cooldown hit
 				if s_e.fire_start>s_e.fire_cooldown then
-				--fire sequence
-				enemy_fire(s_e.x+8,s_e.y+4,s_e.name)
+				--fire sequence, check side
+					if s_e.name=="greensquid" then
+						enemy_fire(s_e.x+8,s_e.y+4,s_e.name)
+					elseif s_e.name=="greensquid_r" then
+						enemy_fire(s_e.x-8,s_e.y+4,s_e.name)
+					end
 				--reset cooldown
 				s_e.fire_start=0
 				end
@@ -578,6 +605,10 @@ function enemy_fire(x,y,name)
 		ep.dy=1
 		add(enemy_projectiles,ep)
 	elseif name=="greensquid" then
+		ep.sp=6
+		ep.dy=1
+		add(enemy_projectiles,ep)
+	elseif name=="greensquid_r" then
 		ep.sp=6
 		ep.dy=1
 		add(enemy_projectiles,ep)
