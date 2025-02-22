@@ -86,6 +86,7 @@ player_currentweap=1
 enemy_1x=0
 enemy_1y=0
 enemies={}
+side_enemies={}
 enemy_projectiles={}
 
 --gamestate
@@ -310,15 +311,17 @@ function move_player()
 	for ep in all(enemy_projectiles) do
 		if ep.name=='redsquid' then
 			ep.y+=.7
-			if overlap(playerx+3,playery+4,2,2,ep.x,ep.y,4,4) then
+			if overlap(playerx+3,playery+4,2,2,ep.x+2,ep.y+1,2,2) then
 				del(enemy_projectiles,ep)
 				player_hp-=10
 				print("!! taking damage !!",72,18,8)
 			end
+		elseif ep.name=="greensquid" then
+			ep.x+=3
 		end
 		
 		--check if out of bounds
-		if ep.y>136 then
+		if ep.y>136 or ep.x>136 then
 			del(enemy_projectiles,ep)
 		end
 	end
@@ -337,7 +340,7 @@ function fire(weapon)
 			y=playery,
 			h=4,
 			w=4,
-			damage=4
+			damage=6
 		}
 		add(projectiles,p)
 		sfx(0)
@@ -444,6 +447,10 @@ function draw_enemy()
 	for e in all(enemies) do
 		spr(e.sp,e.x,e.y)
 	end
+	--loop and draw side enemies
+	for s_e in all(side_enemies) do
+		spr(s_e.sp,s_e.x,s_e.y)
+	end
 end
 
 function enemy_manager()
@@ -451,6 +458,9 @@ function enemy_manager()
 	if level_state==0 then
 		if game_time%61==0 then
 			add_enemy("redsquid")
+		end
+		if game_time%301==0 then
+			add_enemy("greensquid")
 		end
 	end
 	
@@ -462,17 +472,31 @@ function add_enemy(enemy_name)
 	if enemy_name=="redsquid" then
 		local _e={
 			sp=8,
-			x=randint(60),
+			x=randint(112)+8,
 			y=-8,
 			hp=50,
 			movespeed=0.5,
-			target_y=70,
+			target_y=140,
 			name="redsquid",
 			fire_cooldown=randint(24),
 			fire_start=0
 		}
 		
 		add(enemies,_e)
+	elseif enemy_name=="greensquid" then
+		local _e={
+			sp=11,
+			x=0,
+			y=-8,
+			hp=1000,
+			movespeed=1,
+			target_y=playery,
+			name="greensquid",
+			fire_cooldown=30,
+			fire_start=0
+		}
+		
+		add(side_enemies,_e)
 	end
 	
 	
@@ -491,6 +515,8 @@ function move_enemies()
 			--our target
 			if e.y<e.target_y then
 				e.y+=e.movespeed
+			elseif e.y>e.target_y then
+				e.y=-8
 			end
 
 			--enemy firing countdown
@@ -505,11 +531,37 @@ function move_enemies()
 
 					--reset cooldown
 					e.fire_start=0
-					e.fire_cooldown=randint(90)+30					
+					e.fire_cooldown=randint(60)+30					
 				end
 			end
+		end
+	end
+	
+	for s_e in all(side_enemies) do
+		--greensquid enemies
+		if s_e.name=="greensquid" then
+			--check if we've reached
+			--our target
+			if s_e.y<s_e.target_y then
+				s_e.y+=s_e.movespeed
+			end
+		end
+		
+		--enemy firing cooldown'
+		--check first if we're
+		--in the firing position
+		if s_e.y>s_e.target_y-5 then
+			if s_e.fire_cooldown>0 then
+				s_e.fire_start+=1
 			
-			
+				--check if cooldown hit
+				if s_e.fire_start>s_e.fire_cooldown then
+				--fire sequence
+				enemy_fire(s_e.x+8,s_e.y+4,s_e.name)
+				--reset cooldown
+				s_e.fire_start=0
+				end
+			end
 		end
 	end
 end
@@ -525,17 +577,21 @@ function enemy_fire(x,y,name)
 		ep.sp=10
 		ep.dy=1
 		add(enemy_projectiles,ep)
+	elseif name=="greensquid" then
+		ep.sp=6
+		ep.dy=1
+		add(enemy_projectiles,ep)
 	end	
 end
 
 __gfx__
-0000000000a00d0000a0200000090d000aa000000bb0000008800000008008000800808000900900a00a00000000000000000000000000000000000000000000
-0000000000a00d0000a0200000090d00a00a0000b00b0000800800000080080008008080009009000a9000000000000000000000000000000000000000000000
-007007000aa00dd009a02d0000990d20a00a0000b00b00008008000008800880080880800090090009a000000000000000000000000000000000000000000000
-000770000a0000d00a000d0000a000d00aa000000bb00000088000000800008008888880099dd990a00a00000000000000000000000000000000000000000000
-00077000a90cc02d0a06cdd00aac60d0000000000000000000000000820cc028088cc8809d9999d9000000000000000000000000000000000000000000000000
-00700700a9a66d2d0a9c2dd00aa9c2d00000000000000000000000008286682808cccc809cccccc9000000000000000000000000000000000000000000000000
-000000000a9ad2d0009ddd0000aaa20000000000000000000000000008288280008cc80090cccc09000000000000000000000000000000000000000000000000
+0000000000a00d0000a0200000090d000aa000000bb0000008800000008008000800008000900900a00a00000000333000000000000000000000000000000000
+0000000000a00d0000a0200000090d00a00a0000b00b0000800800000080080008000080009009000a9000003333303000000000000000000000000000000000
+007007000aa00dd009a02d0000990d20a00a0000b00b00008008000008800880080880800090090009a00000005cc00000000000000000000000000000000000
+000770000a0000d00a000d0000a000d00aa000000bb00000088000000800008008888880099dd990a00a0000005cc00000000000000000000000000000000000
+00077000a90cc02d0a06cdd00aac60d0000000000000000000000000820cc028088cc8809d9999d900000000005cc00000000000000000000000000000000000
+00700700a9a66d2d0a9c2dd00aa9c2d00000000000000000000000008286682808cccc809cccccc9000000003333303000000000000000000000000000000000
+000000000a9ad2d0009ddd0000aaa20000000000000000000000000008288280008cc80090cccc09000000000000333000000000000000000000000000000000
 0000000000600600006060000006060000000000000000000000000000a00a000008800099000099000000000000000000000000000000000000000000000000
 __sfx__
 00020000115700e550075300050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500
