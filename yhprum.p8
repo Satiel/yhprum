@@ -164,22 +164,23 @@ end
 
 --game over functions
 function game_over_update()
-	--press 🅾️ for new game
+	--press 🅾️ for main menu
 	if btnp(5) then
 		clear_history()
-		game_init()
-	--press ❎ for main menu
-	elseif btnp(4) then
-		clear_history()
 		menu_init()
+	--press ❎ for main menu
+	--[[elseif btnp(4) then
+		clear_history()
+		menu_init()--]]
 	end
 end
 
 function game_over_draw()
 	cls()
 	print("game over screen",0,0,14)
-	print("press 🅾️ to play again!",18,72,6)
-	print("press ❎ for main menu",18,84,6)
+	print("score: "..player_score,18,64,6)
+	print("press 🅾️ for main menu",18,72,6)
+	--print("press ❎ for main menu",18,84,6)
 	spr(1,20,90)
 end
 
