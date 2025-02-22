@@ -42,6 +42,7 @@ game_time=0
 
 --player stats
 player_hp=100
+player_score=0
 
 --position
 playerx=0
@@ -145,6 +146,7 @@ function game_draw()
 	draw_enemy()
 	collision()
 	
+	--print("gameplay screen",0,0,14) 
 	print("gameplay screen",0,0,14) 
 	--print("game over 🅾️",
 	-- 42, 80, 12) 
@@ -218,11 +220,17 @@ function draw_player()
 	--print('current weapon: '..player_weapon,0,8,15)
 	--print('enemy p size: '..count(enemy_projectiles),0,16,15)
 	--print('e size: '..count(enemies),0,24,15)
-	print('gametime: '..game_time,0,120,15)
+	--print('s_e size: '..count(side_enemies),0,32,15)
+	--print('gametime: '..game_time,0,120,15)
+	print('score: '..player_score,0,120,15)
 	print('health: '..player_hp,60,120,8)
 	--[[if overlap(playerx+1,playery,8,6,enemy_1x+1,enemy_1y,8,6) then
 	 print("overlapping enemy!",30,30,13)
 	end--]]
+		--what level are we on?
+	if level_state==1 then
+		print("welcome to level 2",32,64,11)
+	end
 	
 	rect(playerx+3,playery+4,playerx+4,playery+5,8)
 	--rect(enemy_1x+1,enemy_1y,enemy_1x+6,enemy_1x+8,11)
@@ -231,6 +239,8 @@ end
 
 --move the player
 function move_player()
+	--check score and jump levels
+	check_gamestate()
 		--check for out of bounds
 	if playerx<0 then
 		playerx=0
@@ -438,6 +448,7 @@ function collision()
 		end
 		if graze_overlap(playerx,playery,8,8,e.x+1,e.y,8,6) then
 			print("!! enemy_graze !!",72,18,11)
+			player_score+=10
 		end
 		for p in all(projectiles) do
 			if overlap(p.x,p.y,p.h,p.w,e.x+1,e.y,8,6) then
@@ -452,6 +463,7 @@ function collision()
 	for ep in all(enemy_projectiles) do
 		if graze_overlap(playerx,playery,8,8,ep.x,ep.y,4,4) then
 			print("!! graze !!",72,10,8)
+			player_score+=5
 		end
 	end
 end
@@ -459,19 +471,34 @@ end
 function randint(_num)
 	return flr(rnd(_num))
 end
+
+function check_gamestate()
+	if player_score>5000 and level_state==0 then
+		level_state=1
+		projectiles={}
+		enemies={}
+		enemy_projectiles={}
+		side_enemies={}
+		cls()
+		
+	end	
+end
+
 -->8
 --enemy functions
 function draw_enemy()
-	--loop and draw enemies
-	for e in all(enemies) do
-		spr(e.sp,e.x,e.y)
-	end
-	--loop and draw side enemies
-	for s_e in all(side_enemies) do
-		if s_e.name=="greensquid" then
-			spr(s_e.sp,s_e.x,s_e.y)
-		elseif s_e.name=="greensquid_r" then
-			spr(s_e.sp,s_e.x,s_e.y,1.0,1.0,true)
+	if level_state==0 then
+		--loop and draw enemies
+		for e in all(enemies) do
+			spr(e.sp,e.x,e.y)
+		end
+		--loop and draw side enemies
+		for s_e in all(side_enemies) do
+			if s_e.name=="greensquid" then
+				spr(s_e.sp,s_e.x,s_e.y)
+			elseif s_e.name=="greensquid_r" then
+				spr(s_e.sp,s_e.x,s_e.y,1.0,1.0,true)
+			end
 		end
 	end
 end
@@ -488,9 +515,14 @@ function enemy_manager()
 		else
 			
 		end
+	move_enemies()
+	
+	elseif level_state==1 then
+		--print("welcome to level 2",64,64,11)
+		
 	end
 	
-	move_enemies()
+	
 	
 end
 
@@ -547,6 +579,7 @@ function move_enemies()
 		--check health
 		if e.hp<1 then
 			del(enemies,e)
+			player_score+=50
 			
 		--redsquid updates
 		elseif e.name=="redsquid" then
