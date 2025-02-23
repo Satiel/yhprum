@@ -36,6 +36,12 @@ function game_over_init()
 	_draw=game_over_draw
 end
 
+--victory screen initializer
+function victory_init()
+	_update=victory_update
+	_draw=victory_draw
+end
+
 --global declarations
 game_time=0
 
@@ -90,9 +96,16 @@ enemy_1y=0
 enemies={}
 side_enemies={}
 enemy_projectiles={}
+boss_orb_speed=0.7
 
 --gamestate
 level_state=0
+
+--boss loading
+level2_done_loading=false
+bosses_spawned=0
+
+victory=0
 -->8
 --main menu functions
 --main menu updater
@@ -122,9 +135,20 @@ function game_update()
 	--purge at 17 minutes
 	game_time=(game_time+1)%32000
 	
+	if game_time%60==0 and boss_orb_speed==0.7 then
+		boss_orb_speed=1.5
+	elseif game_time%60==0 and boss_orb_speed==1.5 then
+		boss_orb_speed=0.7
+	end
+	
 	--check if player is alive
 	if player_hp<1 then
 		game_over=true
+	end
+	
+	if victory==3 then
+		cls()
+		victory_init()
 	end
 	
 	--check if game is over
@@ -184,6 +208,34 @@ function game_over_draw()
 	spr(1,20,90)
 end
 
+function victory_update()
+	--keep track of gametime
+	--purge at 17 minutes
+	game_time=(game_time+1)%32000
+	
+	move_player()
+	
+	-- back to the main menu
+	if btnp(5) then
+		clear_history()
+		menu_init()
+	end
+		
+		
+end
+
+function victory_draw()
+	if game_time%15==0 then
+		cls()
+	end
+	draw_player()
+	
+	print("nothing went wrong! victory!",8,32,14)
+	print("score: "..player_score,18,64,6)
+	print("press 🅾️ for main menu",18,72,6)
+
+end
+
 function clear_history()
 	
 	--reset variables after death
@@ -199,6 +251,10 @@ function clear_history()
 	cooldown_yellow=0
 	cooldown_green=0
 	cooldown_red=0
+	level_state=0
+	level2_done_loading=false
+	victory=0
+	bosses_spawned=0
 
 	
 end
@@ -251,16 +307,13 @@ function draw_player()
 	--print('e size: '..count(enemies),0,24,15)
 	--print('s_e size: '..count(side_enemies),0,32,15)
 	--print('gametime: '..game_time,0,120,15)
-	print('score: '..player_score,0,120,15)
-	print('health: '..player_hp,60,120,8)
-	--[[if overlap(playerx+1,playery,8,6,enemy_1x+1,enemy_1y,8,6) then
+	if victory !=3 then
+		print('score: '..player_score,0,120,15)
+		print('health: '..player_hp,60,120,8)
+	end	--[[if overlap(playerx+1,playery,8,6,enemy_1x+1,enemy_1y,8,6) then
 	 print("overlapping enemy!",30,30,13)
 	end--]]
-		--what level are we on?
-	if level_state==1 then
-		print("welcome to level 2",32,64,11)
-	end
-	
+
 	rect(playerx+3,playery+4,playerx+4,playery+5,8)
 	--rect(enemy_1x+1,enemy_1y,enemy_1x+6,enemy_1x+8,11)
 	
@@ -359,19 +412,29 @@ function move_player()
 			ep.y+=1.7
 			if overlap(playerx+3,playery+4,2,2,ep.x+2,ep.y+1,2,2) then
 				del(enemy_projectiles,ep)
-				player_hp-=20
+				sfx(4)
+				player_hp-=25
 				print("!! taking damage !!",72,18,8)
 			end
 		elseif ep.name=="greensquid" or ep.name=="greensquid_r" then
 			if overlap(playerx+3,playery+4,2,2,ep.x,ep.y,4,4) then
 				del(enemy_projectiles,ep)
-				player_hp-=10
+				sfx(4)
+				player_hp-=25
 			end
 			if ep.name=="greensquid" then
 				ep.x+=4.5
 			elseif ep.name=="greensquid_r" then
 				ep.x-=6
 			end
+		elseif ep.name=="boss" then
+			if overlap(playerx+3,playery+4,2,2,ep.x,ep.y,6,6) then
+				del(enemy_projectiles,ep)
+				sfx(4)
+				player_hp-=101
+			end
+			--use speedflip variable
+			ep.y+=ep.orb_speed
 		end
 		
 		--check if out of bounds
@@ -394,7 +457,7 @@ function fire(weapon)
 			y=playery,
 			h=4,
 			w=4,
-			damage=6
+			damage=12
 		}
 		add(projectiles,p)
 		sfx(0)
@@ -426,7 +489,7 @@ function changeweapon()
 		player_currentweap+=1
 		
 		-- check if looped around
-		if player_currentweap>2 then
+		if player_currentweap>1 then
 			player_currentweap=1
 		end
 		
@@ -478,8 +541,15 @@ function collision()
 		--check if our ship has 
 		--collided with an enemy
 		--and explode!!!
+		--firstcheckboss
+		if e.name=="boss" and overlap(playerx+3,playery+4,2,2,e.x,e.y,8,8) then
+			del(enemies,e)
+			sfx(4)
+			player_hp-=101
+		end
 		if overlap(playerx+3,playery+4,2,2,e.x+2,e.y+4,4,4) then
-			player_hp-=10
+			player_hp-=50
+			sfx(4)
 			del(enemies,e)
 		end
 		if graze_overlap(playerx,playery,8,8,e.x+1,e.y,8,6) then
@@ -490,6 +560,7 @@ function collision()
 			if overlap(p.x,p.y,p.h,p.w,e.x+1,e.y,8,6) then
 				print("! hit !",e.x-10,e.y,10)
 				e.hp-=p.damage
+				sfx(2)
 				del(projectiles,p)
 			end
 		end
@@ -509,12 +580,19 @@ function randint(_num)
 end
 
 function check_gamestate()
-	if player_score>5000 and level_state==0 then
+	if player_score>1000 and level_state==0 then
 		level_state=1
 		projectiles={}
 		enemies={}
 		enemy_projectiles={}
 		side_enemies={}
+		game_time=0
+		
+		--weapon cooldowns
+		cooldown_weaponswitch=0
+		cooldown_yellow=0
+		cooldown_green=0
+		cooldown_red=0
 		cls()
 		
 	end	
@@ -522,7 +600,7 @@ end
 
 -->8
 --enemy functions
-function draw_enemy()
+function draw_enemy()	
 	if level_state==0 then
 		--loop and draw enemies
 		for e in all(enemies) do
@@ -535,6 +613,25 @@ function draw_enemy()
 			elseif s_e.name=="greensquid_r" then
 				spr(s_e.sp,s_e.x,s_e.y,1.0,1.0,true)
 			end
+		end
+	end
+	
+	--level2
+	if level_state==1 then
+		if game_time>90 and level2_done_loading==false then
+			print("welcome to the boss...",16,16,9)
+		end
+		if game_time>180 and level2_done_loading==false then
+			print("nothing can go wrong...",16,24,9)
+		end
+		if game_time>270 and level2_done_loading==false then
+			print("...if you want to survive.",16,32,9)	
+		end
+		if game_time>360 and level2_done_loading==false then
+			level2_done_loading=true
+		end
+	for e in all(enemies) do
+			spr(e.sp,e.x,e.y)
 		end
 	end
 end
@@ -554,7 +651,13 @@ function enemy_manager()
 	move_enemies()
 	
 	elseif level_state==1 then
-		--print("welcome to level 2",64,64,11)
+		move_enemies()
+		--[[if game_time%61==0 and count(enemies) < 1 then
+			add_enemy("boss")--]]
+		if level2_done_loading==true and game_time%180==0 and victory!=3 and bosses_spawned!=3 then
+			add_enemy("boss")
+			bosses_spawned+=1
+		end
 		
 	end
 	
@@ -605,6 +708,21 @@ function add_enemy(enemy_name)
 		}
 		
 		add(side_enemies,_e)		
+		
+	elseif enemy_name=="boss" then
+		local _e={
+			sp=9,
+			x=randint(108)+8,
+			y=-8,
+			hp=500,
+			movespeed=0.3,
+			target_y=32,
+			name="boss",
+			fire_cooldown=8,
+			fire_start=0
+		}
+		
+		add(enemies,_e)
 	end
 	
 	
@@ -612,13 +730,23 @@ end
 
 function move_enemies()
 	for e in all(enemies) do
+		--check boss, add points
+		if e.name=="boss" and e.hp<1 then
+			sfx(3)
+			del(enemies,e)
+			player_score+=500
+			victory+=1
+			
+		
 		--check health
-		if e.hp<1 then
+		elseif e.name != "boss" and e.hp<1 then
+			sfx(3)
 			del(enemies,e)
 			player_score+=50
+		end
 			
 		--redsquid updates
-		elseif e.name=="redsquid" then
+		if e.name=="redsquid" then
 
 			--check if we've reached
 			--our target
@@ -643,6 +771,30 @@ function move_enemies()
 					e.fire_cooldown=randint(60)+30					
 				end
 			end
+		
+		elseif e.name=="boss" then
+			--check if we've reached
+			--our target
+			if e.y<e.target_y then
+				e.y+=e.movespeed
+			end
+
+			--enemy firing countdown
+			if e.fire_cooldown>0 then
+				e.fire_start+=1
+
+				--check if cooldown hit
+				if e.fire_start>e.fire_cooldown then
+
+					--fire sequence
+					enemy_fire(randint(64)+4,-5,e.name,boss_orb_speed)
+					enemy_fire(randint(64)+60,-5,e.name,boss_orb_speed)
+										--reset cooldown
+					e.fire_start=0
+					e.fire_cooldown=8					
+				end
+			end			
+						
 		end
 	end
 	
@@ -679,11 +831,12 @@ function move_enemies()
 	end
 end
 
-function enemy_fire(x,y,name)
+function enemy_fire(x,y,name,orb_speed)
 	ep={
 		x=x,
 		y=y,
-		name=name
+		name=name,
+		orb_speed=orb_speed
 	}
 	
 	if name=="redsquid" then
@@ -698,18 +851,25 @@ function enemy_fire(x,y,name)
 		ep.sp=6
 		ep.dy=1
 		add(enemy_projectiles,ep)
+	elseif name=="boss" then
+		ep.sp=12
+		ep.dy=1
+		add(enemy_projectiles,ep)
 	end	
 end
 
 __gfx__
-0000000000a00d0000a0200000090d000aa000000bb0000008800000008008000800008000900900a00a00000000333000000000000000000000000000000000
-0000000000a00d0000a0200000090d00a00a0000b00b0000800800000080080008000080009009000a9000003333303000000000000000000000000000000000
-007007000aa00dd009a02d0000990d20a00a0000b00b00008008000008800880080880800090090009a00000005cc00000000000000000000000000000000000
-000770000a0000d00a000d0000a000d00aa000000bb00000088000000800008008888880099dd990a00a0000005cc00000000000000000000000000000000000
-00077000a90cc02d0a06cdd00aac60d0000000000000000000000000820cc028088cc8809d9999d900000000005cc00000000000000000000000000000000000
-00700700a9a66d2d0a9c2dd00aa9c2d00000000000000000000000008286682808cccc809cccccc9000000003333303000000000000000000000000000000000
+0000000000a00d0000a0200000090d000aa000000bb0000008800000008008000800008000900900a00a00000000333001111000000000000000000000000000
+0000000000a00d0000a0200000090d00a00a0000b00b0000800800000080080008000080009009000a9000003333303010cc0100000000000000000000000000
+007007000aa00dd009a02d0000990d20a00a0000b00b00008008000008800880080880800090090009a00000005cc0001c00c100000000000000000000000000
+000770000a0000d00a000d0000a000d00aa000000bb00000088000000800008008888880099dd990a00a0000005cc0001c00c100000000000000000000000000
+00077000a90cc02d0a06cdd00aac60d0000000000000000000000000820cc028088cc8809d9999d900000000005cc00010cc0100000000000000000000000000
+00700700a9a66d2d0a9c2dd00aa9c2d00000000000000000000000008286682808cccc809cccccc9000000003333303001111000000000000000000000000000
 000000000a9ad2d0009ddd0000aaa20000000000000000000000000008288280008cc80090cccc09000000000000333000000000000000000000000000000000
 0000000000600600006060000006060000000000000000000000000000a00a000008800099000099000000000000000000000000000000000000000000000000
 __sfx__
 00020000115700e550075300050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500
 000200000b1700e1500e1300010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100
+000800000b3300e3200e3100030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300003000030000300
+000500001665018650156401262011620116000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
+000800001567015660216401e630186301562012620106200f6200f62007600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
